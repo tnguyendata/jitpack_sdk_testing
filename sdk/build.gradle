@@ -61,12 +61,21 @@ publishing {
             groupId = GROUP
             artifactId = ARTIFACT_ID
             version = SDK_VERSION
-            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
 
             pom {
                 name = 'Datalogic Android SDK'
                 description = 'Official SDK for Datalogic mobile devices on Android.'
                 url = 'https://github.com/datalogic/datalogic-android-sdk'
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release {
+                artifact(bundleReleaseAar)
             }
         }
     }
