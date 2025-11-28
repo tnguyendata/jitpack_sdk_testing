@@ -1,19 +1,48 @@
-apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-group='com.github.datalogic'
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
+
+def extractSdkVersion() {
+    def systemFile = file('src/main/java/com/datalogic/device/info/SYSTEM.java')
+    def majorVersion = null
+    def minorVersion = null
+    
+    systemFile.eachLine { line ->
+        if (line.contains('SDK_VERSION_MAJOR') && line.contains('=')) {
+            def matcher = (line =~ /=\s*(\d+)/)
+            if (matcher.find()) {
+                majorVersion = matcher[0][1]
+            }
+        }
+        if (line.contains('SDK_VERSION_MINOR') && line.contains('=')) {
+            def matcher = (line =~ /=\s*(\d+)/)
+            if (matcher.find()) {
+                minorVersion = matcher[0][1]
+            }
+        }
+    }
+    
+    if (majorVersion == null || minorVersion == null) {
+        throw new GradleException("Could not extract SDK version from SYSTEM.java")
+    }
+    
+    return "v${majorVersion}.${minorVersion}"
+}
+
+def String GROUP = 'com.github.datalogic'
+def String ARTIFACT_ID = 'datalogic-android-sdk'
+def String SDK_VERSION = extractSdkVersion()
 
 android {
-    compileSdkVersion 28
-
-
+    compileSdkVersion 35
+    namespace 'com.datalogic.android.sdk'
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 28
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
 
@@ -26,35 +55,19 @@ android {
 
 }
 
-dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = GROUP
+            artifactId = ARTIFACT_ID
+            version = SDK_VERSION
+            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
 
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-}
-
-// build a jar with source files
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
-
-task javadoc(type: Javadoc) {
-    failOnError  false
-    source = android.sourceSets.main.java.sourceFiles
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    classpath += configurations.compile
-}
-
-// build a jar with javadoc
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-
-artifacts {
-    archives sourcesJar
-    archives javadocJar
+            pom {
+                name = 'Datalogic Android SDK'
+                description = 'Official SDK for Datalogic mobile devices on Android.'
+                url = 'https://github.com/datalogic/datalogic-android-sdk'
+            }
+        }
+    }
 }
